@@ -1,0 +1,24 @@
+rules:
+  - id: SEC-001
+    name: Hardcoded API Key or Secret
+    severity: CRITICAL
+    type: regex
+    pattern: '(?i)(api_key|apikey|secret|password|passwd|jwt_secret)\s*=\s*["''][A-Za-z0-9_\-\.]{8,}["'']'
+
+  - id: SEC-002
+    name: Exposed Private RSA/PEM Key
+    severity: CRITICAL
+    type: regex
+    pattern: '-----BEGIN PRIVATE KEY-----'
+
+  - id: SEC-003
+    name: Hardcoded Database Connection String
+    severity: HIGH
+    type: regex
+    pattern: 'postgres://|mysql://|mongodb://'
+
+  - id: SEC-004
+    name: Dangerous Eval/Exec Sink
+    severity: CRITICAL
+    type: ast_sink
+    sinks: ['eval', 'exec', 'system', 'Popen']

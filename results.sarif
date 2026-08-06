@@ -1,0 +1,91 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "DevSecOps-SAST-Engine",
+          "informationUri": "https://github.com/waruna-2002/project02_sast_engine",
+          "rules": [
+            {
+              "id": "SEC-001",
+              "name": "Hardcoded API Key or Secret"
+            },
+            {
+              "id": "SEC-002",
+              "name": "Exposed Private RSA/PEM Key"
+            },
+            {
+              "id": "SEC-003",
+              "name": "Hardcoded Database Connection String"
+            },
+            {
+              "id": "SEC-004",
+              "name": "Dangerous Eval/Exec Sink"
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "SEC-001",
+          "level": "error",
+          "message": {
+            "text": "Hardcoded API Key or Secret"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "test_targets/vulnerable_sample.py"
+                },
+                "region": {
+                  "startLine": 4
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SEC-004",
+          "level": "error",
+          "message": {
+            "text": "Dangerous Eval/Exec Sink (`eval`)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "test_targets/vulnerable_sample.py"
+                },
+                "region": {
+                  "startLine": 8
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "SEC-SQLI",
+          "level": "warning",
+          "message": {
+            "text": "Potential SQL Injection Hazard (% formatting)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "test_targets/vulnerable_sample.py"
+                },
+                "region": {
+                  "startLine": 11
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
