@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevSecOps - SAST Web Auditor</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background: #0d1117; color: #c9d1d9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .card { background: #161b22; border: 1px solid #30363d; border-radius: 12px; }
+        .drop-zone { border: 2px dashed #484f58; border-radius: 8px; padding: 30px; text-align: center; background: #0d1117; cursor: pointer; transition: 0.3s; }
+        .drop-zone:hover { border-color: #58a6ff; background: #161b22; }
+    </style>
+</head>
+<body>
+    <nav class="navbar border-bottom border-secondary mb-4 px-4 bg-dark">
+        <span class="navbar-brand h1 text-info mb-0">
+            <i class="fa-solid fa-shield-halved me-2 text-warning"></i> Enterprise SAST Code Auditor
+        </span>
+        <span class="badge bg-outline-info border border-warning text-warning">DevSecOps Engine</span>
+    </nav>
+
+    <div class="container-fluid px-4">
+        <div class="row g-4">
+            <!-- Left Side: File Upload & Controls -->
+            <div class="col-lg-4">
+                <div class="card p-4 shadow">
+                    <h5 class="text-light mb-3"><i class="fa-solid fa-file-code me-2 text-info"></i>Upload Code File</h5>
+                    <p class="text-secondary small">Upload your Python (.py) or source code file to scan for hardcoded secrets, dangerous sinks, and SQL Injection hazards.</p>
+                    
+                    <div class="drop-zone mb-3" onclick="document.getElementById('fileInput').click()">
+                        <i class="fa-solid fa-cloud-arrow-up display-5 text-secondary mb-2"></i>
+                        <div class="text-light fw-semibold" id="uploadLabel">Click to upload or Drag & Drop file</div>
+                        <small class="text-muted">Supports .py, .js, .json, .env</small>
+                        <input type="file" id="fileInput" class="d-none" onchange="handleFileSelect(this)">
+                    </div>
+
+                    <button class="btn btn-warning w-100 fw-bold py-2 shadow-sm" onclick="uploadAndScan()">
+                        <i class="fa-solid fa-magnifying-glass-code me-2"></i> Scan Code Security
+                    </button>
+                </div>
+
+                <!-- Score Card -->
+                <div class="card p-4 mt-3 text-center shadow">
+                    <small class="text-secondary fw-bold">SECURITY POSTURE SCORE</small>
+                    <div id="score" class="display-3 fw-bold text-warning my-2">--%</div>
+                    <small id="findingSummary" class="text-muted">No scan executed yet</small>
+                </div>
+            </div>
+
+            <!-- Right Side: Findings Dashboard -->
+            <div class="col-lg-8">
+                <div class="card p-4 shadow">
+                    <h5 class="text-light mb-3"><i class="fa-solid fa-bug me-2 text-danger"></i>Static Code Analysis Findings</h5>
+                    <div id="resultsContainer" class="small">
+                        <div class="alert alert-dark border border-secondary text-center text-muted py-5">
+                            <i class="fa-solid fa-code display-6 mb-3"></i><br>
+                            Select a code file and click <strong>'Scan Code Security'</strong> to perform AST vulnerability analysis.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedFile = null;
+
+        function handleFileSelect(input) {
+            if (input.files && input.files[0]) {
+                selectedFile = input.files[0];
+                document.getElementById('uploadLabel').innerText = "Selected: " + selectedFile.name;
+            }
+        }
+
+        async function uploadAndScan() {
+            if (!selectedFile) {
+                alert("Please select a file to scan!");
+                return;
+            }
+
+            const resContainer = document.getElementById("resultsContainer");
+            resContainer.innerHTML = `<div class="text-center py-4 text-info"><i class="fa-solid fa-spinner fa-spin display-6 mb-2"></i><br>Parsing AST Syntax Tree & Scanning Rules...</div>`;
+
+            const formData = new FormData();
+            formData.append("file", selectedFile);
+
+            try {
+                const res = await fetch("/api/scan-file", {
+                    method: "POST",
+                    body: formData
+                });
+
+                const data = await res.json();
+                if (res.status !== 200) {
+                    resContainer.innerHTML = `<div class='alert alert-danger'>${data.error}</div>`;
+                    return;
+                }
+
+                // Update Score
+                document.getElementById("score").innerText = data.score + "%";
+                document.getElementById("score").className = `display-3 fw-bold my-2 ${data.score > 70 ? 'text-success' : (data.score > 40 ? 'text-warning' : 'text-danger')}`;
+                document.getElementById("findingSummary").innerText = `File: ${data.filename} | Total Findings: ${data.total}`;
+
+                resContainer.innerHTML = "";
+                if (data.findings.length === 0) {
+                    resContainer.innerHTML = "<div class='alert alert-success border-success'><i class='fa-solid fa-circle-check me-2'></i><strong>Code Clean!</strong> No vulnerabilities or hardcoded secrets detected.</div>";
+                    return;
+                }
+
+                data.findings.forEach(f => {
+                    let badgeClass = f.severity === 'CRITICAL' ? 'bg-danger' : (f.severity === 'HIGH' ? 'bg-warning text-dark' : 'bg-info text-dark');
+                    resContainer.innerHTML += `
+                        <div class="border-bottom border-secondary pb-3 mb-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="badge ${badgeClass}">${f.severity}</span>
+                                <small class="text-muted">Line: <code>${f.line}</code> | Rule: <code>${f.rule_id || 'SEC-GENERIC'}</code></small>
+                            </div>
+                            <div class="mt-2 text-light fw-bold">${f.issue}</div>
+                            <div class="mt-2 bg-dark p-2 rounded border border-secondary"><code>${f.code_snippet}</code></div>
+                        </div>
+                    `;
+                });
+
+            } catch (e) {
+                resContainer.innerHTML = `<div class='alert alert-danger'>Error executing scan: ${e.message}</div>`;
+            }
+        }
+    </script>
+</body>
+</html>
